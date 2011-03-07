@@ -1,0 +1,7 @@
+O:\Projects\MultiPosTR\MultiPosTR\Usage\obj\x86\Debug\ResolveAssemblyReference.cache
+O:\Projects\MultiPosTR\MultiPosTR\Usage\bin\Debug\Usage.exe
+O:\Projects\MultiPosTR\MultiPosTR\Usage\bin\Debug\Usage.pdb
+O:\Projects\MultiPosTR\MultiPosTR\Usage\bin\Debug\VPosTR.Api.dll
+O:\Projects\MultiPosTR\MultiPosTR\Usage\bin\Debug\VPosTR.Api.pdb
+O:\Projects\MultiPosTR\MultiPosTR\Usage\obj\x86\Debug\Usage.exe
+O:\Projects\MultiPosTR\MultiPosTR\Usage\obj\x86\Debug\Usage.pdb
