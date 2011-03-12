@@ -17,6 +17,15 @@ namespace VPosTR.Api.VirtualPos
         private string _password;
         private string _hostUrl;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="TerminalId"></param>
+        /// <param name="ProvisionUser">PROVAUT or PROVRFN</param>
+        /// <param name="ProvisionPassword"></param>
+        /// <param name="MerchantId"></param>
+        /// <param name="hostUrl"></param>
+        /// <param name="WorkingMode"></param>
         public GarantiVPos(string TerminalId, string ProvisionUser, string ProvisionPassword, string MerchantId, string hostUrl, string WorkingMode = "TEST")
         {
             _terminalId = TerminalId;
@@ -31,7 +40,7 @@ namespace VPosTR.Api.VirtualPos
         {
             var response = new PosResponse();
 
-            var gvpRequest = CreateRequest(posRequest);
+            var gvpRequest = CreateSalesInstance(posRequest);
 
             response.RequestTextData = this.SerializeObjectToXmlString<GVPSRequest>(gvpRequest);
             response.ResponseTextData = SendHttpRequest(_hostUrl, "Post", response.RequestTextData);
@@ -48,22 +57,58 @@ namespace VPosTR.Api.VirtualPos
 
         internal override PosResponse Void(PosRequest posRequest)
         {
-            throw new NotImplementedException();
+            var response = new PosResponse();
+
+            var gvpRequest = CreateSalesInstance(posRequest,refundable:true, type:"void");
+
+            response.RequestTextData = this.SerializeObjectToXmlString<GVPSRequest>(gvpRequest);
+            response.ResponseTextData = SendHttpRequest(_hostUrl, "Post", response.RequestTextData);
+
+            var responseObject = this.DeSerializeObject<GVPSResponse>(response.ResponseTextData);
+
+            response.OrderId = responseObject.Order.OrderID;
+            response.StatusCode = responseObject.Transaction.Response.Code;
+            response.Status = responseObject.Transaction.Response.Message.Equals("Approved") ? true : false;
+            response.ErrorMsg = responseObject.Transaction.Response.ErrorMsg;
+
+            return response;
         }
 
         internal override PosResponse ReFund(PosRequest posRequest)
         {
-            throw new NotImplementedException();
+            var response = new PosResponse();
+
+            var gvpRequest = CreateSalesInstance(posRequest, refundable: true, type: "refund");
+
+            response.RequestTextData = this.SerializeObjectToXmlString<GVPSRequest>(gvpRequest);
+            response.ResponseTextData = SendHttpRequest(_hostUrl, "Post", response.RequestTextData);
+
+            var responseObject = this.DeSerializeObject<GVPSResponse>(response.ResponseTextData);
+
+            response.OrderId = responseObject.Order.OrderID;
+            response.StatusCode = responseObject.Transaction.Response.Code;
+            response.Status = responseObject.Transaction.Response.Message.Equals("Approved") ? true : false;
+            response.ErrorMsg = responseObject.Transaction.Response.ErrorMsg;
+
+            return response;
         }
 
         #region Private Functions
-        private GVPSRequest CreateRequest(PosRequest posRequest)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="posRequest"></param>
+        /// <param name="refundable">for void & refund</param>
+        /// <param name="type">sales, void, refund</param>
+        /// <returns></returns>
+        private GVPSRequest CreateSalesInstance(PosRequest posRequest, bool refundable = false, string type = "sales")
         {
             string SecurityData = GetSHA1(_password + String.Format("000{0}", _terminalId))
                             .ToUpper(); //_terminalId'nin 9 haneye tamamlanması gerekiyor.
 
-            string _HashData = GetSHA1(posRequest.OrderId + _terminalId + posRequest.CardNumber + posRequest.Amount + SecurityData)
-                .ToUpper();
+            string _HashData = !refundable ?
+                            GetSHA1(posRequest.OrderId + _terminalId + posRequest.CardNumber + posRequest.Amount + SecurityData).ToUpper() :
+                            GetSHA1(posRequest.OrderId + _terminalId + posRequest.Amount + SecurityData).ToUpper();
 
             var gvpRequest = new GVPSRequest();
             gvpRequest.Mode = _workingMode;
@@ -74,7 +119,7 @@ namespace VPosTR.Api.VirtualPos
                 ID = _terminalId,
                 UserID = posRequest.UserId,
                 MerchantID = _merchantId,
-                ProvUserID = _provisionUser,
+                ProvUserID = !refundable ? _provisionUser : "PROVRFN",
                 HashData = _HashData
             };
 
@@ -84,12 +129,14 @@ namespace VPosTR.Api.VirtualPos
                 IPAddress = posRequest.UserIp
             };
 
-            gvpRequest.Card = new Card()
-            {
-                Number = posRequest.CardNumber,
-                CVV2 = posRequest.Cvc2,
-                ExpireDate = String.Format("{0}{1}", posRequest.Month, posRequest.Year) //MMYY
-            };
+
+            gvpRequest.Card = !refundable ?
+                new Card()
+                {
+                    Number = posRequest.CardNumber,
+                    CVV2 = posRequest.Cvc2,
+                    ExpireDate = String.Format("{0}{1}", posRequest.Month, posRequest.Year) //MMYY
+                } : new Card();
 
             gvpRequest.Order = new Order()
             {
@@ -101,7 +148,7 @@ namespace VPosTR.Api.VirtualPos
             {
                 Type = "sales",
                 CurrencyCode = posRequest.CurrencyCode,
-                MotoInd = "N",
+                MotoInd = !refundable ? "N" : "H",
                 InstallmentCnt = posRequest.InstallmentCount == 0 ? String.Empty :
                                             posRequest.InstallmentCount.ToString(),
                 // 10,05 -> 1005

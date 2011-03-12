@@ -43,6 +43,7 @@
     <Compile Include="PosRequest.cs" />
     <Compile Include="PosResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="VirtualPos\EstVPos.cs" />
     <Compile Include="VirtualPos\GarantiVPos.cs" />
     <Compile Include="VPos.cs" />
     <Compile Include="VPosContext.cs" />

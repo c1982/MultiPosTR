@@ -26,8 +26,7 @@ namespace Usage
             request.UserEmail = "aspsrc@gmail.com";
             request.UserId = Guid.NewGuid().ToString("N");
             
-           
-
+          
             Console.Read();
         }
     }
